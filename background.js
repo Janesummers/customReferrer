@@ -25,11 +25,7 @@ function updateRefererRules() {
     },
     "condition": {
       "urlFilter": `||${rule.domain}/*`, // 仅匹配目标域名
-      "resourceTypes": [
-        "main_frame",
-        "sub_frame",
-        "xmlhttprequest",
-      ]
+      "resourceTypes": ["xmlhttprequest"]
     }
   }));
 
