@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
-  "name": "Custom Referer Control",
-  "version": "1.0",
+  "name": "JSummer - 自定义Referer",
+  "version": "2.0",
   "permissions": [
     "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*",
+    "https://cxqjgs.dcyun.com/*"
   ],
   "background": {
     "service_worker": "background.js"

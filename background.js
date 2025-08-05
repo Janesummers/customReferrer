@@ -1,53 +1,56 @@
-// 白名单域名列表（仅允许这些域名的请求携带 Referer）
-const WHITELIST_DOMAINS = [
-  "http://localhost:8080/*"
+const REFERER_RULES = [
+  {
+    domain: "cxqjgs.dcyun.com:38120",      // 目标域名（发起请求的域名）
+    referer: "https://cxqjgs.dcyun.com:38120"  // 要设置的 Referer
+  }
 ];
-const DEFAULT_REFERER = "https://cxqjgs.dcyun.com:38120";
 
-// 动态规则ID（避免冲突）
-const RULE_ID = 1;
+// 为每个规则生成唯一 ID（避免冲突）
+function generateRuleId(index) {
+  return index + 1;
+}
 
-// 初始化规则
-chrome.runtime.onInstalled.addListener(() => {
-  updateRefererRule(DEFAULT_REFERER);
-});
+// 动态更新规则
+function updateRefererRules() {
+  const rules = REFERER_RULES.map((rule, index) => ({
+    "id": generateRuleId(index),
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [{
+        "header": "Referer",
+        "operation": "set",
+        "value": rule.referer
+      }]
+    },
+    "condition": {
+      "urlFilter": `||${rule.domain}/*`, // 仅匹配目标域名
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "xmlhttprequest",
+      ]
+    }
+  }));
 
-// 更新规则函数
-function updateRefererRule(newReferer) {
   chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [RULE_ID],
-    addRules: [{
-      "id": RULE_ID,
-      "priority": 1,
-      "action": {
-        "type": "modifyHeaders",
-        "requestHeaders": [
-          {
-            "header": "Referer",
-            "operation": "set",
-            "value": newReferer
-          }
-        ]
-      },
-      "condition": {
-        "urlFilter": "|http*",
-        "resourceTypes": [
-          "main_frame",
-          "sub_frame",
-          "xmlhttprequest", // 替换原来的 "fetch"
-          "script",        // 可选：覆盖脚本请求
-          "image"          // 可选：覆盖图片请求
-        ],
-        "excludedInitiatorDomains": WHITELIST_DOMAINS // 仅对非白名单域名生效
-      }
-    }]
+    removeRuleIds: REFERER_RULES.map((_, index) => generateRuleId(index)),
+    addRules: rules
+  });
+
+  // 在 updateRefererRules() 函数末尾添加：
+  chrome.declarativeNetRequest.getDynamicRules((rules) => {
+    console.log("当前生效的规则：", rules);
+  });
+
+  chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((info) => {
+    console.log("规则匹配详情：", info);
+    console.log("Matched request type:", info.request.type);
   });
 }
 
-// 接收来自popup的消息
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "updateReferer") {
-    updateRefererRule(request.referer);
-    sendResponse({ success: true });
-  }
+// 初始化规则
+chrome.runtime.onInstalled.addListener(() => {
+  updateRefererRules();
+  chrome.declarativeNetRequest.getDynamicRules(console.log); // 直接打印
 });
